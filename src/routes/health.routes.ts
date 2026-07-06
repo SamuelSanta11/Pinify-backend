@@ -1,11 +1,8 @@
-import { Router } from 'express';
+import { Router } from "express";
+import { healthCheck } from "../controllers/health.controller";
 
 const router = Router();
 
-router.get('/', (req, res) => {
-    res.json({
-        message: 'Pinify api running'
-    });
-});
+router.get("/", healthCheck);
 
 export default router;
