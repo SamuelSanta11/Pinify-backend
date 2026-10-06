@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
+
 import { registerUserService } from "../services/auth.services";
-import { isValidEmail, isValidPassword } from "../utils/validators";
+
+import { isValidEmail, isValidPassword
+} from "../utils/validators";
+
 
 export const registerUser = async (
     req: Request,
@@ -8,7 +12,6 @@ export const registerUser = async (
 ): Promise<void> => {
 
     try {
-
         console.log("Entro al register Controller");
 
         const { username, email, password } = req.body;
@@ -17,7 +20,6 @@ export const registerUser = async (
             res.status(400).json({
                 message: "Todos los campos son obligatorios"
             });
-
             return;
         }
 
@@ -25,7 +27,6 @@ export const registerUser = async (
             res.status(400).json({
                 message: "El formato del email no es válido"
             });
-
             return;
         }
 
@@ -33,7 +34,6 @@ export const registerUser = async (
             res.status(400).json({
                 message: "La contraseña no cumple con los requisitos"
             });
-
             return;
         }
 
@@ -49,7 +49,6 @@ export const registerUser = async (
         });
 
     } catch (error: any) {
-
         console.error(error);
 
         if (error.code === "23505") {
@@ -58,7 +57,6 @@ export const registerUser = async (
                 res.status(409).json({
                     message: "El username ya está registrado"
                 });
-
                 return;
             }
 
@@ -66,7 +64,6 @@ export const registerUser = async (
                 res.status(409).json({
                     message: "El email ya está registrado"
                 });
-
                 return;
             }
         }
@@ -75,4 +72,16 @@ export const registerUser = async (
             message: "Error interno del servidor"
         });
     }
+};
+
+export const loginUser = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+
+    console.log("Entro al login Controller");
+
+    res.status(200).json({
+        message: "Login funcionando correctamente"
+    });
 };
