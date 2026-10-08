@@ -7,11 +7,7 @@ export const createUser = async (
 ) => {
     const result = await pool.query(
         `
-        INSERT INTO users (
-            username,
-            email,
-            password
-        )
+        INSERT INTO users (username, email, password)
         VALUES ($1, $2, $3)
         RETURNING id, username, email, created_at
         `,
@@ -24,16 +20,24 @@ export const createUser = async (
 export const findUserByEmail = async (email: string) => {
     const result = await pool.query(
         `
-        SELECT
-            id,
-            username,
-            email,
-            password,
-            created_at
+        SELECT id, username, email, password, created_at
         FROM users
         WHERE email = $1
         `,
         [email]
+    );
+
+    return result.rows[0];
+};
+
+export const findUserById = async (id: number) => {
+    const result = await pool.query(
+        `
+        SELECT id, username, email, avatar_url, bio, created_at
+        FROM users
+        WHERE id = $1
+        `,
+        [id]
     );
 
     return result.rows[0];
