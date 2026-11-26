@@ -1,5 +1,10 @@
 import { Request, Response } from "express";
-import { createPostService, getFeedService } from "../services/post.services";
+import {
+    createPostService,
+    deletePostService,
+    getFeedService,
+    getPostDetailService
+} from "../services/post.services";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 const isValidUrl = (value: string): boolean => {
@@ -11,14 +16,34 @@ const isValidUrl = (value: string): boolean => {
     }
 };
 
+const parsePositiveSafeInteger = (value: unknown): number | null => {
+    if (typeof value !== "string" || !/^\d+$/.test(value)) {
+        return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 export const createPostController = async (
     req: AuthRequest,
     res: Response
 ): Promise<void> => {
     try {
-        console.log("Entro al createPost Controller");
+        const userId = req.userId;
+        if (typeof userId !== "number" || !Number.isSafeInteger(userId) || userId <= 0) {
+            res.status(401).json({ message: "Usuario no autenticado" });
+            return;
+        }
 
-        const { image_url, title, description } = req.body;
+        const body = req.body;
+
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+            res.status(400).json({ message: "El cuerpo de la solicitud no es válido" });
+            return;
+        }
+
+        const { image_url, title, description } = body;
 
         if (!image_url || typeof image_url !== "string") {
             res.status(400).json({ message: "La imagen es obligatoria" });
@@ -30,13 +55,26 @@ export const createPostController = async (
             return;
         }
 
-        if (title && (typeof title !== "string" || title.length > 100)) {
-            res.status(400).json({ message: "El título no puede superar 100 caracteres" });
+        if (
+            title !== undefined &&
+            title !== null &&
+            (typeof title !== "string" || title.length > 100)
+        ) {
+            res.status(400).json({ message: "El título debe ser texto de máximo 100 caracteres" });
+            return;
+        }
+
+        if (
+            description !== undefined &&
+            description !== null &&
+            typeof description !== "string"
+        ) {
+            res.status(400).json({ message: "La descripción debe ser texto" });
             return;
         }
 
         const post = await createPostService(
-            req.userId!,
+            userId,
             image_url,
             title ?? null,
             description ?? null
@@ -58,14 +96,103 @@ export const getFeedController = async (
     res: Response
 ): Promise<void> => {
     try {
-        console.log("Entro al getFeed Controller");
+        const page = req.query.page === undefined
+            ? 1
+            : parsePositiveSafeInteger(req.query.page);
+        const requestedLimit = req.query.limit === undefined
+            ? 20
+            : parsePositiveSafeInteger(req.query.limit);
 
-        const page = Math.max(Number(req.query.page) || 1, 1);
-        const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+        if (page === null || requestedLimit === null) {
+            res.status(400).json({ message: "La paginación debe usar enteros positivos seguros" });
+            return;
+        }
+
+        const limit = Math.min(requestedLimit, 50);
+        const offset = (page - 1) * limit;
+
+        if (!Number.isSafeInteger(offset)) {
+            res.status(400).json({ message: "La página solicitada está fuera de rango" });
+            return;
+        }
 
         const posts = await getFeedService(page, limit);
 
         res.status(200).json({ page, limit, posts });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+const parseId = (value: unknown): number | null => {
+    if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) {
+        return null;
+    }
+
+    const id = Number(value);
+    return Number.isSafeInteger(id) ? id : null;
+};
+
+export const getPostController = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const postId = parseId(req.params.id);
+
+        if (!postId) {
+            res.status(400).json({ message: "El id del post no es válido" });
+            return;
+        }
+
+        const post = await getPostDetailService(postId);
+
+        if (!post) {
+            res.status(404).json({ message: "Post no encontrado" });
+            return;
+        }
+
+        res.status(200).json({ post });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+export const deletePostController = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const userId = req.userId;
+        if (typeof userId !== "number" || !Number.isSafeInteger(userId) || userId <= 0) {
+            res.status(401).json({ message: "Usuario no autenticado" });
+            return;
+        }
+
+        const postId = parseId(req.params.id);
+
+        if (!postId) {
+            res.status(400).json({ message: "El id del post no es válido" });
+            return;
+        }
+
+        const result = await deletePostService(postId, userId);
+
+        if (result === "not_found") {
+            res.status(404).json({ message: "Post no encontrado" });
+            return;
+        }
+
+        if (result === "forbidden") {
+            res.status(403).json({ message: "No puedes eliminar un post que no es tuyo" });
+            return;
+        }
+
+        res.status(200).json({ message: "Post eliminado exitosamente" });
 
     } catch (error) {
         console.error(error);

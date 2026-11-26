@@ -40,3 +40,34 @@ export const getPosts = async (limit: number, offset: number) => {
 
     return result.rows;
 };
+
+export const getPostById = async (id: number) => {
+    const result = await pool.query(
+        `
+        SELECT
+            p.id,
+            p.image_url,
+            p.title,
+            p.description,
+            p.created_at,
+            u.id AS user_id,
+            u.username,
+            u.avatar_url
+        FROM posts p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.id = $1
+        `,
+        [id]
+    );
+
+    return result.rows[0];
+};
+
+export const deletePostById = async (id: number, userId: number) => {
+    const result = await pool.query(
+        "DELETE FROM posts WHERE id = $1 AND user_id = $2 RETURNING id",
+        [id, userId]
+    );
+
+    return result.rows.length > 0;
+};

@@ -1,4 +1,4 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 const getSecret = (): string => {
     const secret = process.env.JWT_SECRET;
@@ -15,7 +15,16 @@ export const generateToken = (userId: number): string => {
 };
 
 export const verifyToken = (token: string): { id: number } => {
-    const decoded = jwt.verify(token, getSecret()) as JwtPayload;
+    const decoded = jwt.verify(token, getSecret());
 
-    return { id: decoded.id };
+    if (typeof decoded !== "object" || decoded === null) {
+        throw new Error("El token no contiene un payload válido");
+    }
+
+    const id = decoded.id;
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) {
+        throw new Error("El token no contiene un ID de usuario válido");
+    }
+
+    return { id };
 };

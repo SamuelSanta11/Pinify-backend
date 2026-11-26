@@ -102,7 +102,13 @@ export const getMe = async (
     try {
         console.log("Entro al getMe Controller");
 
-        const user = await getProfileService(req.userId!);
+        const userId = req.userId;
+        if (typeof userId !== "number" || !Number.isSafeInteger(userId) || userId <= 0) {
+            res.status(401).json({ message: "Usuario no autenticado" });
+            return;
+        }
+
+        const user = await getProfileService(userId);
 
         if (!user) {
             res.status(404).json({ message: "Usuario no encontrado" });
