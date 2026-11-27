@@ -3,7 +3,9 @@ import {
     createPostService,
     deletePostService,
     getFeedService,
-    getPostDetailService
+    getPostDetailService,
+    likePostService,
+    unlikePostService
 } from "../services/post.services";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
@@ -156,6 +158,71 @@ export const getPostController = async (
 
         res.status(200).json({ post });
 
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+export const likePostController = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const userId = req.userId;
+        if (typeof userId !== "number" || !Number.isSafeInteger(userId) || userId <= 0) {
+            res.status(401).json({ message: "Usuario no autenticado" });
+            return;
+        }
+
+        const postId = parseId(req.params.id);
+        if (!postId) {
+            res.status(400).json({ message: "El id del post no es válido" });
+            return;
+        }
+
+        const result = await likePostService(postId, userId);
+        if (result === "not_found") {
+            res.status(404).json({ message: "Post no encontrado" });
+            return;
+        }
+
+        if (result === "already_exists") {
+            res.status(409).json({ message: "Ya diste like a este post" });
+            return;
+        }
+
+        res.status(201).json({ message: "Like agregado" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+};
+
+export const unlikePostController = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const userId = req.userId;
+        if (typeof userId !== "number" || !Number.isSafeInteger(userId) || userId <= 0) {
+            res.status(401).json({ message: "Usuario no autenticado" });
+            return;
+        }
+
+        const postId = parseId(req.params.id);
+        if (!postId) {
+            res.status(400).json({ message: "El id del post no es válido" });
+            return;
+        }
+
+        const result = await unlikePostService(postId, userId);
+        if (result === "not_found") {
+            res.status(404).json({ message: "Post o like no encontrado" });
+            return;
+        }
+
+        res.status(200).json({ message: "Like eliminado" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error interno del servidor" });

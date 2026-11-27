@@ -1,6 +1,8 @@
 import {
     createPost,
+    createPostLike,
     deletePostById,
+    deletePostLike,
     getPostById,
     getPosts
 } from "../models/post.model";
@@ -25,6 +27,30 @@ export const getFeedService = async (page: number, limit: number) => {
 };
 export const getPostDetailService = async (postId: number) => {
     return (await getPostById(postId)) ?? null;
+};
+
+export const likePostService = async (postId: number, userId: number) => {
+    const post = await getPostById(postId);
+    if (!post) {
+        return "not_found";
+    }
+
+    const created = await createPostLike(postId, userId);
+    if (created) {
+        return "created";
+    }
+
+    return (await getPostById(postId)) ? "already_exists" : "not_found";
+};
+
+export const unlikePostService = async (postId: number, userId: number) => {
+    const post = await getPostById(postId);
+    if (!post) {
+        return "not_found";
+    }
+
+    const deleted = await deletePostLike(postId, userId);
+    return deleted ? "deleted" : "not_found";
 };
 
 export const deletePostService = async (postId: number, userId: number) => {
