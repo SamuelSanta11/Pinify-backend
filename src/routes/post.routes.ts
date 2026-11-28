@@ -10,7 +10,7 @@ import {
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
-
+//Detalles de rutas para el manejo de posts
 router.get("/", getFeedController);
 router.get("/:id", getPostController);
 router.post("/", authMiddleware, createPostController);
